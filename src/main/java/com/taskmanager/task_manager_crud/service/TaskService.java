@@ -22,7 +22,7 @@ public class TaskService {
     }
 
     public Task create(Task task) {
-        return taskRepository.save(task); // Retorna a task criada
+        return taskRepository.save(task);
     }
 
     public List<Task> list() {
@@ -32,16 +32,21 @@ public class TaskService {
     }
 
     public Task update(Task task) {
-        if (!taskRepository.existsById(task.getId())) {
-            throw new TaskNotFoundException(task.getId()); // Passar o id como Long
+        if (task.getId() == null) {
+            throw new IllegalArgumentException("O ID da tarefa não pode ser nulo para a atualização.");
         }
-        return taskRepository.save(task); // Retorna a task atualizada
+
+        if (!taskRepository.existsById(task.getId())) {
+            throw new TaskNotFoundException(task.getId());
+        }
+
+        return taskRepository.save(task);
     }
 
     public void delete(Long id) {
         if (!taskRepository.existsById(id)) {
-            throw new TaskNotFoundException(id); // Passar o id como Long
+            throw new TaskNotFoundException(id);
         }
-        taskRepository.deleteById(id); // Deleta a task
+        taskRepository.deleteById(id);
     }
 }

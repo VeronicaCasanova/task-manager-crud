@@ -5,11 +5,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.test.web.reactive.server.WebTestClient;
-
 import com.taskmanager.task_manager_crud.entity.Task;
 
-@SpringBootTest (webEnvironment = WebEnvironment.RANDOM_PORT)
-
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class TaskManagerCrudApplicationTests {
 
 	private final WebTestClient webTestClient;
@@ -17,6 +15,19 @@ class TaskManagerCrudApplicationTests {
 	@Autowired
 	public TaskManagerCrudApplicationTests(WebTestClient webTestClient) {
 		this.webTestClient = webTestClient;
+	}
+
+	private Long createTask(Task task) {
+		return webTestClient
+				.post()
+				.uri("/tasks")
+				.bodyValue(task)
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody(Task.class)
+				.returnResult()
+				.getResponseBody()
+				.getId();
 	}
 
 	@Test
@@ -30,12 +41,10 @@ class TaskManagerCrudApplicationTests {
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody()
-				.jsonPath("$").isArray()
-				.jsonPath("$.length()").isEqualTo(1)
-				.jsonPath("$[0].nome").isEqualTo(task.getNome())
-				.jsonPath("$[0].descricao").isEqualTo(task.getDescricao())
-				.jsonPath("$[0].realizado").isEqualTo(task.isRealizado())
-				.jsonPath("$[0].prioridade").isEqualTo(task.getPrioridade());
+				.jsonPath("$.nome").isEqualTo(task.getNome())
+				.jsonPath("$.descricao").isEqualTo(task.getDescricao())
+				.jsonPath("$.realizado").isEqualTo(task.isRealizado())
+				.jsonPath("$.prioridade").isEqualTo(task.getPrioridade());
 	}
 
 	@Test
@@ -43,54 +52,54 @@ class TaskManagerCrudApplicationTests {
 		webTestClient
 				.post()
 				.uri("/tasks")
-				.bodyValue(
-						new Task("", "", false, 0))
+				.bodyValue(new Task("", "", false, 0))
 				.exchange()
 				.expectStatus().isBadRequest();
 	}
 
 	@Test
 	void testUpdateTaskSuccess() {
-		var task = new Task(2L, "Estudar Spring Boot 3 - Atualizado", "Finalizar estudo sobre Spring Boot - Atualizado", true, 4);
+		// Cria a tarefa e captura seu ID
+		var originalTask = new Task("Estudar Spring Boot", "Finalizar estudo sobre Spring Boot", false, 3);
+		Long taskId = createTask(originalTask);
+
+		// Atualiza a tarefa
+		var updatedTask = new Task(taskId, "Estudar Spring Boot 3 - Atualizado", "Finalizar estudo sobre Spring Boot - Atualizado", true, 4);
+
 		webTestClient
 				.put()
-				.uri("/tasks")
-				.bodyValue(task)
+				.uri("/tasks/{id}", taskId) // Certifique-se de usar o ID correto
+				.bodyValue(updatedTask)
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody()
-				.jsonPath("$").isArray()
-				.jsonPath("$[0].nome").isEqualTo(task.getNome());
+				.jsonPath("$.nome").isEqualTo(updatedTask.getNome())
+				.jsonPath("$.descricao").isEqualTo(updatedTask.getDescricao())
+				.jsonPath("$.realizado").isEqualTo(updatedTask.isRealizado())
+				.jsonPath("$.prioridade").isEqualTo(updatedTask.getPrioridade());
 	}
 
 	@Test
 	void testDeleteTaskSuccess() {
-		// Primeiro, certifique-se de que a task com ID 3L existe antes de tentar excluí-la
-		var task = new Task(3L, "Estudar Java e Spring", "Estudo detalhado sobre Spring Boot", false, 5);
+		// Cria a tarefa e captura seu ID
+		var task = new Task("Estudar Java e Spring", "Estudo detalhado sobre Spring Boot", false, 5);
+		Long taskId = createTask(task);
 
-		webTestClient
-				.post()
-				.uri("/tasks")
-				.bodyValue(task)
-				.exchange()
-				.expectStatus().isOk();
-
-		// Agora, exclua a task com ID 3L
+		// Exclui a tarefa criada
 		webTestClient
 				.delete()
-				.uri("/tasks/{id}", 3L)
+				.uri("/tasks/{id}", taskId)
 				.exchange()
 				.expectStatus().isOk();
 	}
 
-
 	@Test
 	void testDeleteTaskNotFound() {
+		// Tenta deletar um ID inexistente
 		webTestClient
 				.delete()
 				.uri("/tasks/{id}", 999L)
 				.exchange()
 				.expectStatus().isNotFound();
 	}
-
 }
