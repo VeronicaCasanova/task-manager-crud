@@ -29,7 +29,7 @@ public class TaskController {
     }
 
     @PostMapping
-    public Task create(@RequestBody @Valid Task task) { // Alterado para retornar uma Task
+    public Task create(@RequestBody @Valid Task task) {
         return taskService.create(task);
     }
 
@@ -38,19 +38,23 @@ public class TaskController {
         return taskService.list();
     }
 
-    @PutMapping
-    public ResponseEntity<Task> update(@RequestBody @Valid Task task) {
+    @PutMapping("/{id}")
+    public ResponseEntity<Task> update(@PathVariable Long id, @RequestBody @Valid Task task) {
         if (task.getId() == null) {
-            throw new IllegalArgumentException("O campo 'id' é obrigatório para atualizar a task.");
+            throw new IllegalArgumentException("O ID da tarefa no corpo da requisição não pode ser nulo.");
         }
 
-        Task updatedTask = taskService.update(task); // Alterado para retornar uma Task
+        if (!id.equals(task.getId())) {
+            throw new IllegalArgumentException("O ID na URL deve corresponder ao ID no corpo da requisição.");
+        }
+
+        Task updatedTask = taskService.update(task);
         return ResponseEntity.ok(updatedTask);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        taskService.delete(id); // Apenas chama delete, sem verificar retorno
-        return ResponseEntity.ok().build(); // Retorna 200 OK
+        taskService.delete(id);
+        return ResponseEntity.ok().build();
     }
 }
